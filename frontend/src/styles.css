@@ -180,6 +180,10 @@ button { font: inherit; }
 .chat-panel.is-collapsed > :not(.chat-header) { display: none; }
 .chat-root.is-hidden .chat-panel { display: none; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.orientation-prompt { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--paper); background: rgb(7 11 10 / 88%); text-align: center; }
+.orientation-prompt > div { display: grid; justify-items: center; gap: 16px; max-width: 300px; }
+.orientation-prompt span { color: var(--lime); font-size: 52px; line-height: 1; }
+.orientation-prompt strong { font: 800 24px 'Barlow Condensed', sans-serif; letter-spacing: 1px; }
 .touch-controls { position: absolute; z-index: 6; inset: 0; display: flex; align-items: flex-end; justify-content: space-between; padding: 24px; pointer-events: none; touch-action: none; }
 .touch-control { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
 .touch-joystick { position: relative; display: grid; place-items: center; width: 140px; aspect-ratio: 1; border: 1px solid rgb(240 238 231 / 38%); border-radius: 50%; background: rgb(13 19 16 / 32%); box-shadow: inset 0 0 0 12px rgb(240 238 231 / 4%); }

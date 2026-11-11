@@ -39,6 +39,8 @@ export class Game {
     this.clock = new THREE.Clock();
     this.input = new Input();
     this.isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    this.gameShell = canvas.closest('.game-shell');
+    this.orientationPrompt = document.querySelector('#orientation-prompt');
     this.cursorUnlockedByUser = false;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isTouchDevice ? 1 : 1.6));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -85,6 +87,7 @@ export class Game {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+      this.updateOrientationPrompt();
     };
     this.handleResize();
     this.handlePointerLock = () => {
@@ -135,6 +138,7 @@ export class Game {
       this.onInspectProfile?.(selected.getProfile());
     };
     window.addEventListener('resize', this.handleResize);
+    document.addEventListener('fullscreenchange', this.handleResize);
     window.addEventListener('keydown', this.handleEscape);
     window.addEventListener('keydown', this.handleCursorToggle);
     document.addEventListener('pointerlockchange', this.handlePointerLock);
@@ -239,8 +243,36 @@ export class Game {
   }
 
   async enterPrison(profile) {
+    const orientationRequest = this.requestMobileLandscape();
     await this.multiplayer.connect(profile);
+    await orientationRequest;
     this.play();
+  }
+
+  async requestMobileLandscape() {
+    if (!this.isTouchDevice) return;
+
+    try {
+      if (!document.fullscreenElement && this.gameShell.requestFullscreen) {
+        await this.gameShell.requestFullscreen({ navigationUI: 'hide' });
+      }
+    } catch {
+      this.updateOrientationPrompt();
+      return;
+    }
+
+    try {
+      await window.screen.orientation?.lock?.('landscape');
+    } catch {
+      this.updateOrientationPrompt();
+    }
+  }
+
+  updateOrientationPrompt() {
+    if (!this.orientationPrompt) return;
+    this.orientationPrompt.hidden = !this.isTouchDevice
+      || this.state !== 'playing'
+      || window.innerWidth > window.innerHeight;
   }
 
   handleWelcome(welcome) {
@@ -310,6 +342,7 @@ export class Game {
     this.input.enabled = state === 'playing';
     if (this.touchControls) this.touchControls.hidden = !this.isTouchDevice || state !== 'playing';
     if (state !== 'playing') this.input.clear();
+    this.updateOrientationPrompt();
     this.onStateChange(state);
   }
 
@@ -319,7 +352,7 @@ export class Game {
     if (!this.isTouchDevice) {
       this.cursorUnlockedByUser = false;
       this.canvas.requestPointerLock?.();
-    }
+    } else this.requestMobileLandscape();
   }
 
   pause() {
@@ -330,6 +363,8 @@ export class Game {
   returnToMenu() {
     this.hasStarted = false;
     if (document.pointerLockElement === this.canvas) document.exitPointerLock();
+    window.screen.orientation?.unlock?.();
+    if (document.fullscreenElement === this.gameShell) document.exitFullscreen?.();
     this.setState('menu');
   }
 
@@ -362,10 +397,13 @@ export class Game {
   destroy() {
     cancelAnimationFrame(this.frame);
     window.removeEventListener('resize', this.handleResize);
+    document.removeEventListener('fullscreenchange', this.handleResize);
     window.removeEventListener('keydown', this.handleEscape);
     window.removeEventListener('keydown', this.handleCursorToggle);
     document.removeEventListener('pointerlockchange', this.handlePointerLock);
     this.canvas.removeEventListener('click', this.handleCanvasClick);
+    window.screen.orientation?.unlock?.();
+    if (document.fullscreenElement === this.gameShell) document.exitFullscreen?.();
     this.multiplayer.destroy();
     for (const remote of this.remotePlayers.values()) remote.destroy();
     this.remotePlayers.clear();

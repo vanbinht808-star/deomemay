@@ -137,8 +137,13 @@ try {
   });
   document.querySelector('#fullscreen-button').addEventListener('click', async () => {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.querySelector('.game-shell').requestFullscreen();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        window.screen.orientation?.unlock?.();
+      } else {
+        await game.requestMobileLandscape();
+        if (!document.fullscreenElement) await game.gameShell.requestFullscreen();
+      }
     } catch {
       toast.textContent = 'Trình duyệt không cho phép chế độ toàn màn hình.';
       toast.hidden = false;
