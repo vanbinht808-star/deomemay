@@ -5,4 +5,9 @@ services:
     plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm run start:server
-    healthCheckPath: /
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://toiyeuban.onrender.com,https://prison-life-3d.onrender.com

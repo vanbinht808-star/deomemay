@@ -1,5 +1,6 @@
 import './styles.css';
 import { Game } from './game/Game.js';
+import { ChatPanel } from './game/ChatPanel.js';
 
 const canvas = document.querySelector('#game-canvas');
 const bootMessage = document.querySelector('#boot-message');
@@ -19,6 +20,7 @@ const customOffenseInput = document.querySelector('#custom-offense');
 let profileStage = 'intake';
 let profileDraft = null;
 let game;
+let chatPanel;
 
 function showState(state) {
   bootMessage.hidden = true;
@@ -26,6 +28,7 @@ function showState(state) {
   reviewScreen.hidden = state !== 'menu' || profileStage !== 'review';
   gameHud.hidden = state !== 'playing';
   pauseScreen.hidden = state !== 'paused';
+  chatPanel?.setVisible(state === 'playing' || state === 'paused');
 }
 
 function showReview(profile) {
@@ -48,6 +51,7 @@ function showPlayerProfile(profile) {
 
 try {
   game = await Game.create(canvas, showState, showPlayerProfile);
+  chatPanel = new ChatPanel(game.multiplayer.socket);
 
   try {
     const savedProfile = JSON.parse(sessionStorage.getItem('prison-life-profile') || 'null');

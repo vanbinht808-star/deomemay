@@ -13,7 +13,12 @@ export class Game {
   static async create(canvas, onStateChange, onInspectProfile) {
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+      const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: !touchDevice,
+        powerPreference: touchDevice ? 'low-power' : 'high-performance',
+      });
     } catch {
       throw new Error('Không thể tạo WebGL context. Hãy bật tăng tốc phần cứng hoặc dùng Chrome/Edge phiên bản mới.');
     }
@@ -33,12 +38,13 @@ export class Game {
     this.playerRay = new THREE.Vector2(0, 0);
     this.clock = new THREE.Clock();
     this.input = new Input();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    this.isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isTouchDevice ? 1 : 1.6));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.08;
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = !this.isTouchDevice;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.world = new World(this.scene, physics);
@@ -52,6 +58,7 @@ export class Game {
       document.querySelector('#interaction-hint'),
       this.playerController,
     );
+    this.setupTouchControls();
     this.remotePlayers = new Map();
     this.localPlayerId = null;
     this.localNameTag = null;
@@ -80,7 +87,7 @@ export class Game {
     };
     this.handleResize();
     this.handlePointerLock = () => {
-      if (this.hasStarted && this.state === 'playing' && document.pointerLockElement !== this.canvas) {
+      if (!this.isTouchDevice && this.hasStarted && this.state === 'playing' && document.pointerLockElement !== this.canvas) {
         this.pause();
       }
     };
@@ -102,7 +109,7 @@ export class Game {
     };
     this.handleCanvasClick = () => {
       if (!this.hasStarted || this.state !== 'playing') return;
-      if (document.pointerLockElement !== this.canvas) {
+      if (!this.isTouchDevice && document.pointerLockElement !== this.canvas) {
         this.canvas.requestPointerLock?.();
         return;
       }
@@ -125,6 +132,101 @@ export class Game {
     canvas.addEventListener('click', this.handleCanvasClick);
     this.setState('menu');
     this.animate();
+  }
+
+  setupTouchControls() {
+    this.touchControls = document.querySelector('#touch-controls');
+    if (!this.touchControls) return;
+    this.touchControls.hidden = !this.isTouchDevice;
+
+    const joystick = document.querySelector('#touch-joystick');
+    const knob = document.querySelector('#touch-joystick-knob');
+    let joystickPointer = null;
+    const updateJoystick = (event) => {
+      const bounds = joystick.getBoundingClientRect();
+      const radius = bounds.width * 0.34;
+      const dx = event.clientX - (bounds.left + bounds.width / 2);
+      const dy = event.clientY - (bounds.top + bounds.height / 2);
+      const distance = Math.hypot(dx, dy);
+      const scale = distance > radius ? radius / distance : 1;
+      const x = (dx * scale) / radius;
+      const y = (dy * scale) / radius;
+      this.input.setVirtualMove(x, y);
+      knob.style.transform = `translate(${x * radius}px, ${y * radius}px)`;
+    };
+    const resetJoystick = () => {
+      joystickPointer = null;
+      this.input.setVirtualMove(0, 0);
+      knob.style.transform = 'translate(0, 0)';
+    };
+    joystick.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      joystickPointer = event.pointerId;
+      joystick.setPointerCapture(event.pointerId);
+      updateJoystick(event);
+    });
+    joystick.addEventListener('pointermove', (event) => {
+      if (event.pointerId === joystickPointer) updateJoystick(event);
+    });
+    joystick.addEventListener('pointerup', (event) => {
+      if (event.pointerId === joystickPointer) resetJoystick();
+    });
+    joystick.addEventListener('pointercancel', resetJoystick);
+
+    const buttonBindings = [
+      ['#touch-run', 'ShiftLeft'],
+      ['#touch-jump', 'Space'],
+      ['#touch-crouch', 'KeyC'],
+      ['#touch-interact', 'KeyE'],
+    ];
+    for (const [selector, code] of buttonBindings) {
+      const button = document.querySelector(selector);
+      let pointerId = null;
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        pointerId = event.pointerId;
+        button.setPointerCapture(pointerId);
+        button.classList.add('is-pressed');
+        this.input.pressVirtual(code);
+      });
+      const release = (event) => {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        button.classList.remove('is-pressed');
+        this.input.releaseVirtual(code);
+      };
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+      button.addEventListener('lostpointercapture', release);
+    }
+
+    document.querySelector('#touch-chat').addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('game:toggle-chat'));
+    });
+
+    let lookPointer = null;
+    let previousLook = null;
+    this.canvas.addEventListener('pointerdown', (event) => {
+      if (!this.isTouchDevice || event.pointerType !== 'touch' || event.clientX < window.innerWidth * 0.38) return;
+      event.preventDefault();
+      lookPointer = event.pointerId;
+      previousLook = { x: event.clientX, y: event.clientY };
+      this.canvas.setPointerCapture(event.pointerId);
+    });
+    this.canvas.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== lookPointer || !previousLook) return;
+      const deltaX = event.clientX - previousLook.x;
+      const deltaY = event.clientY - previousLook.y;
+      previousLook = { x: event.clientX, y: event.clientY };
+      this.cameraRig.rotateBy(deltaX, deltaY, 0.005);
+    });
+    const stopLook = (event) => {
+      if (event.pointerId !== lookPointer) return;
+      lookPointer = null;
+      previousLook = null;
+    };
+    this.canvas.addEventListener('pointerup', stopLook);
+    this.canvas.addEventListener('pointercancel', stopLook);
   }
 
   async enterPrison(profile) {
@@ -197,6 +299,7 @@ export class Game {
   setState(state) {
     this.state = state;
     this.input.enabled = state === 'playing';
+    if (this.touchControls) this.touchControls.hidden = !this.isTouchDevice || state !== 'playing';
     if (state !== 'playing') this.input.clear();
     this.onStateChange(state);
   }
@@ -204,7 +307,7 @@ export class Game {
   play() {
     this.hasStarted = true;
     this.setState('playing');
-    this.canvas.requestPointerLock?.();
+    if (!this.isTouchDevice) this.canvas.requestPointerLock?.();
   }
 
   pause() {

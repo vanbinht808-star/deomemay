@@ -17,7 +17,11 @@ Khi phát triển giao diện, chạy backend bằng `npm start` và chạy Vite
 
 Đẩy project lên GitHub, sau đó trên Render chọn **New > Blueprint** và kết nối repository này. Render sẽ dùng `render.yaml` để cài dependencies, build frontend và chạy server web. Sau khi deploy hoàn tất, mở URL Render cấp để truy cập game.
 
-Server sử dụng biến `PORT` do Render cung cấp và phục vụ cả frontend, API cùng kết nối Socket.IO trên cùng một dịch vụ.
+Server sử dụng biến `PORT` do Render cung cấp và phục vụ frontend, API cùng Socket.IO trên một dịch vụ. `ALLOWED_ORIGINS` chỉ chứa các domain Render của game; nếu đổi tên dịch vụ, cập nhật biến này theo domain mới.
+
+Để bật chat và lưu lịch sử bền vững, cần tạo PostgreSQL trên Render (cùng region), rồi đặt `DATABASE_URL` của database vào Environment Variables của web service. Không đưa URL này vào GitHub. Nếu chưa cấu hình database, game multiplayer vẫn chạy nhưng chat sẽ báo chưa sẵn sàng; server không giả lập lưu lịch sử bằng RAM. Database PostgreSQL bền vững có thể phát sinh phí; Blueprint hiện không tự tạo database tính phí.
+
+Có thể đặt `CHAT_BLOCKED_WORDS` thành danh sách từ/cụm từ phân cách bằng dấu phẩy để bộ lọc thay chúng bằng `***`. Đặt `DATABASE_SSL=true` chỉ khi database yêu cầu TLS với chứng chỉ được hệ thống tin cậy.
 
 ## Điều khiển
 
@@ -28,9 +32,10 @@ Server sử dụng biến `PORT` do Render cung cấp và phục vụ cả front
 - Chuột: xoay camera góc nhìn thứ ba
 - Con lăn: điều chỉnh khoảng cách camera
 - `Esc`: tạm dừng
+- Thiết bị cảm ứng: joystick di chuyển, kéo nửa phải màn hình để xoay camera; nút chạy, nhảy, cúi, tương tác và chat.
 
-Game hiển thị form tiếp nhận nhập vai trước khi kết nối: tên nhân vật, tuổi nhân vật, vi phạm hư cấu (có lựa chọn tự nhập) và lý do. Sau khi xác nhận, server cấp Player ID/mã tù riêng; dữ liệu profile được giữ trong phiên RAM của server và sessionStorage của tab, chưa có tài khoản hoặc database bền vững. Trong game, tên/mã tù xuất hiện trên đầu nhân vật; nhắm tâm camera vào người chơi khác rồi nhấp chuột để xem hồ sơ.
+Game hiện dùng guest profile, chưa có tài khoản/mật khẩu. Server cấp Player ID/mã tù; khi có PostgreSQL, profile guest và hash của token phiên được lưu bền vững. Trình duyệt giữ bearer token trong `sessionStorage` để reconnect; đây không phải xác thực tài khoản và không bảo vệ danh tính khỏi người kiểm soát trình duyệt. Người chơi chưa có hệ thống đăng ký hoặc thu hồi phiên.
 
-Multiplayer Socket.IO hiện hỗ trợ tối đa 20 slot trong một phiên. Trạng thái vị trí/hướng/animation được kiểm tra ở server, chia sẻ theo khu vực và remote avatar nội suy độc lập. Đã kiểm tra 20 Socket.IO client Node đồng thời, relay di chuyển và từ chối client thứ 21; đây chưa phải kiểm thử tải 20 trình duyệt.
+Socket.IO hỗ trợ tối đa 20 slot trong một tiến trình. Server xác thực token phiên guest, chặn replay token đang hoạt động, giới hạn event, kiểm tra biên/tốc độ/vị trí tương tác và correction dữ liệu không hợp lệ. Vật lý va chạm vẫn chạy trên client, nên đây chưa phải mô phỏng authoritative hoàn chỉnh; không có tiền, máu, inventory hay nhiệm vụ trong game hiện tại.
 
-Tùy chỉnh ngoại hình, tài khoản/lưu trữ bền vững, chat, nhiệm vụ, NPC và voice chat chưa được triển khai.
+Chat có kênh toàn nhà tù, gần đây 15m và riêng; history phân trang lưu trong PostgreSQL, roster online, block/report, giới hạn gửi và render text an toàn. Chat chưa thể chạy đến khi cấu hình `DATABASE_URL`. Role player/moderator/administrator có trong schema nhưng chưa có công cụ quản trị hoặc luồng cấp quyền. Multi-instance scaling, kiểm thử tải thực tế, hiệu năng trên thiết bị thật, đăng nhập tài khoản và kiểm thử lịch sử với PostgreSQL chưa được xác nhận.

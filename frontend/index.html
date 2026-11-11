@@ -17,6 +17,56 @@
         <strong id="online-count">0/20</strong>
       </div>
 
+      <aside class="chat-root" id="chat-root" aria-label="Chat nhà tù" hidden>
+        <section class="chat-panel" id="chat-panel">
+          <header class="chat-header">
+            <div class="chat-heading"><span class="chat-live-dot"></span><div><h2>CHAT NHÀ TÙ</h2><span id="chat-status">ĐANG KẾT NỐI</span></div></div>
+            <div class="chat-header-actions">
+              <button class="chat-icon-button" id="chat-sound-button" type="button" title="Bật hoặc tắt âm báo" aria-label="Bật hoặc tắt âm báo">♫</button>
+              <button class="chat-icon-button" id="chat-minimize-button" type="button" title="Thu nhỏ chat" aria-label="Thu nhỏ chat">−</button>
+              <button class="chat-icon-button" id="chat-hide-button" type="button" title="Ẩn chat" aria-label="Ẩn chat">×</button>
+            </div>
+          </header>
+          <nav class="chat-tabs" aria-label="Kênh chat">
+            <button type="button" data-chat-type="global" aria-pressed="true">TOÀN NHÀ TÙ</button>
+            <button type="button" data-chat-type="near" aria-pressed="false">GẦN ĐÂY</button>
+            <button type="button" data-chat-type="private" aria-pressed="false">RIÊNG</button>
+          </nav>
+          <div class="chat-tools">
+            <label for="chat-player-select">NGƯỜI CHƠI</label>
+            <select id="chat-player-select" aria-label="Chọn người chơi để nhắn riêng"></select>
+            <button id="chat-block-button" type="button" title="Chặn hoặc bỏ chặn người chơi" aria-label="Chặn hoặc bỏ chặn người chơi">⊘</button>
+            <label class="chat-opacity" for="chat-opacity-input" title="Độ trong suốt của khung chat">◐
+              <input id="chat-opacity-input" type="range" min="55" max="100" value="92" aria-label="Độ trong suốt khung chat">
+            </label>
+          </div>
+          <ol class="chat-messages" id="chat-messages" aria-live="polite" aria-relevant="additions"></ol>
+          <p class="chat-empty" id="chat-empty">Chưa có tin nhắn trong kênh này.</p>
+          <form class="chat-compose" id="chat-form">
+            <label class="visually-hidden" for="chat-input">Nội dung tin nhắn</label>
+            <textarea id="chat-input" maxlength="500" rows="1" placeholder="Nhập tin nhắn..." required></textarea>
+            <button type="submit" aria-label="Gửi tin nhắn" title="Gửi tin nhắn">GỬI</button>
+          </form>
+          <div class="chat-footline"><span id="chat-feedback" role="status">Tin nhắn tối đa 500 ký tự</span><span id="chat-unread-label"></span></div>
+        </section>
+        <button class="chat-open-button" id="chat-open-button" type="button" aria-label="Mở chat nhà tù" hidden>
+          <span aria-hidden="true">▤</span><span>CHAT</span><b id="chat-unread-count" hidden>0</b>
+        </button>
+      </aside>
+
+      <div class="touch-controls" id="touch-controls" hidden>
+        <div class="touch-joystick touch-control" id="touch-joystick" aria-label="Joystick di chuyển">
+          <span class="touch-joystick-knob" id="touch-joystick-knob"></span>
+        </div>
+        <div class="touch-actions">
+          <button class="touch-action touch-control" id="touch-run" type="button">CHẠY</button>
+          <button class="touch-action touch-control" id="touch-jump" type="button">NHẢY</button>
+          <button class="touch-action touch-control" id="touch-crouch" type="button">CÚI</button>
+          <button class="touch-action touch-control" id="touch-interact" type="button">TƯƠNG TÁC</button>
+          <button class="touch-action touch-control" id="touch-chat" type="button">CHAT</button>
+        </div>
+      </div>
+
       <div class="boot-message" id="boot-message" role="status">ĐANG KHỞI TẠO THẾ GIỚI</div>
       <section class="profile-screen" id="profile-intake" aria-labelledby="intake-title" hidden>
           <form class="intake-panel" id="profile-form">

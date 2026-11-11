@@ -16,13 +16,17 @@ export class CameraRig {
 
     document.addEventListener('mousemove', (event) => {
       if (document.pointerLockElement !== this.canvas) return;
-      this.yaw -= event.movementX * this.mouseSensitivity;
-      this.pitch = THREE.MathUtils.clamp(this.pitch + event.movementY * this.mouseSensitivity, -0.35, 1.12);
+      this.rotateBy(event.movementX, event.movementY, this.mouseSensitivity);
     });
     canvas.addEventListener('wheel', (event) => {
       event.preventDefault();
       this.distance = THREE.MathUtils.clamp(this.distance + event.deltaY * 0.006, 2.8, 8.5);
     }, { passive: false });
+  }
+
+  rotateBy(deltaX, deltaY, sensitivity = this.mouseSensitivity) {
+    this.yaw -= deltaX * sensitivity;
+    this.pitch = THREE.MathUtils.clamp(this.pitch + deltaY * sensitivity, -0.35, 1.12);
   }
 
   update(playerPosition, delta) {
