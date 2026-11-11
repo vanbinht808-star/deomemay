@@ -24,8 +24,8 @@ export class ChatPanel {
     this.peerId = '';
     this.available = false;
     this.visible = false;
-    this.collapsed = window.matchMedia('(pointer: coarse)').matches;
-    this.userHidden = window.matchMedia('(pointer: coarse)').matches;
+    this.collapsed = true;
+    this.userHidden = true;
     this.muted = true;
     this.unread = 0;
     this.unreadByChannel = new Map();
@@ -135,7 +135,15 @@ export class ChatPanel {
   }
 
   setHidden(hidden) {
+    const wasHidden = this.panel.hidden;
     this.userHidden = hidden;
+    if (!hidden && wasHidden) {
+      this.collapsed = false;
+      this.panel.classList.remove('is-collapsed');
+      const minimizeButton = document.querySelector('#chat-minimize-button');
+      minimizeButton.textContent = '−';
+      minimizeButton.title = 'Thu nhỏ chat';
+    }
     this.root.classList.toggle('is-hidden', hidden);
     this.root.classList.toggle('is-expanded', !hidden && !this.collapsed);
     document.querySelector('#touch-controls')?.classList.toggle(

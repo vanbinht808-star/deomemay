@@ -39,6 +39,7 @@ export class Game {
     this.clock = new THREE.Clock();
     this.input = new Input();
     this.isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    this.cursorUnlockedByUser = false;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isTouchDevice ? 1 : 1.6));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -87,7 +88,11 @@ export class Game {
     };
     this.handleResize();
     this.handlePointerLock = () => {
-      if (!this.isTouchDevice && this.hasStarted && this.state === 'playing' && document.pointerLockElement !== this.canvas) {
+      if (!this.isTouchDevice
+        && !this.cursorUnlockedByUser
+        && this.hasStarted
+        && this.state === 'playing'
+        && document.pointerLockElement !== this.canvas) {
         this.pause();
       }
     };
@@ -98,13 +103,17 @@ export class Game {
       if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     };
     this.handleCursorToggle = (event) => {
-      if (!['ControlLeft', 'ControlRight'].includes(event.code) || event.repeat || !this.hasStarted) return;
+      if (!['ControlLeft', 'ControlRight'].includes(event.code)
+        || event.repeat
+        || !this.hasStarted
+        || this.state !== 'playing') return;
       event.preventDefault();
-      if (this.state === 'playing') {
-        this.pause();
-        if (document.pointerLockElement === this.canvas) document.exitPointerLock();
-      } else if (this.state === 'paused') {
-        this.play();
+      if (document.pointerLockElement === this.canvas) {
+        this.cursorUnlockedByUser = true;
+        document.exitPointerLock();
+      } else {
+        this.cursorUnlockedByUser = false;
+        this.canvas.requestPointerLock?.();
       }
     };
     this.handleCanvasClick = () => {
@@ -307,7 +316,10 @@ export class Game {
   play() {
     this.hasStarted = true;
     this.setState('playing');
-    if (!this.isTouchDevice) this.canvas.requestPointerLock?.();
+    if (!this.isTouchDevice) {
+      this.cursorUnlockedByUser = false;
+      this.canvas.requestPointerLock?.();
+    }
   }
 
   pause() {
